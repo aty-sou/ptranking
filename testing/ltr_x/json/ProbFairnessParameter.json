@@ -1,0 +1,9 @@
+{
+  "cluster":[false],
+  "K":[1],
+  "sort_id":["ExpRele"],
+  "limit_delta":[0.001],
+  "patience_gama":[0.5],
+  "balance_lambda":[0.5],
+  "test_num_samples":[100]
+}

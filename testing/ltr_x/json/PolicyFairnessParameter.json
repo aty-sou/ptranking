@@ -1,0 +1,6 @@
+{
+  "patience_gama":[0.5],
+  "balance_lambda":[0.5],
+  "train_num_samples":[20],
+  "test_num_samples":[100]
+}

@@ -1,0 +1,42 @@
+
+
+> be able to sample 1% data for initial training, i.e., initial ranking / ranker
+: burn-in with a setting of 1%
+: pass the initial ranker
+
+
+> click model:
+: given initial ranking & corresponding labels -> generate corresponding clicks, propensity
+: run click model per query rather than store ahead
+
+
+
+> open issues:
+1. runing a group of click models at the same time to simulate user population;
+
+2. integrating expected rank or probabilistic scoring function, especially the exposure definition;
+
+3. integrating neural click models with embedding vector representations w.r.t. query, doc, click, etc.
+
+TODO 4. PL vs Probabilistic scoring function,
+PL resorts to Montecolor sampling
+Prob, e.g., gaussian leads to a closed formulation !!!
+
+TODO == on understanding the source code ==
+> for i, lgroup in enumerate(lambdas_list):
+it corresponds to "we search a specific range". At the same time, it also compute the performance on test data.
+Later, by "read_performance",
+> it seems that there are many parts to be confirmed.
+> a good reference of PL sampling, and probability "multiple_sample_and_log_probability()", where "1e6" is added to minimize
+the effect of exp(0) due to the usage of "subtracts"
+<< Todo  >>
+> confirm the definition of disparity
+> customize the main part of "on_policy_training()", i.e., the training part.
+
+TODO >>> a consistent fairness computation w.r.t. the following paper:
+Computationally Efficient Optimization of Plackett-Luce Ranking Models for Relevance and Fairness
+
+TODO >>> Pairwise Fairness for Ranking and Regression
+correlation and re-implementation
+>> summarize the pairwise fairness definitions
+!!2021-Online Post-Processing In Rankings For Fair Utility Maximization
