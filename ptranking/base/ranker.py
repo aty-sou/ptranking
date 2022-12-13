@@ -23,7 +23,7 @@ class LTRFRAME_TYPE(Enum):
     Probabilistic = auto()
     Diversification = auto()
     X = auto() # Covering capabilities of De-biasing, Fairness
-
+    Federation = auto()  # Covering federated LTR
 
 class Evaluator():
     """ An interface with in-built evaluation APIs """

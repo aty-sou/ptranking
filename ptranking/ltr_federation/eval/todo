@@ -1,0 +1,24 @@
+
+To be solved issues:
+
+(1) linear vs non-linear ranking model:
+
+linear: relatively simple
+non-linear: explicit operation of per-layer gradient & parameter
+
+? how to explicitly operate the gradient & parameter w.r.t. a point_sf ?
+
+<1> check what are your parameters !
+# def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+# def named_parameters(self, prefix: str = '', recurse: bool = True) -> Iterator[Tuple[str, Parameter]]:
+# self.point_sf.parameters()
+
+<2> get the corresponding gradients ! (higher order?)
+
+
+??? should we use train/validation/test split,
+The current answer is Yes, 1> for a general framework instead of a single replication of fpdgd. Later for supporting more methods; 2> a better way of selecting parameters;
+
+!!! considering the property of Federated Learning that keeps no data on local server, the process of validation should not be deployed.
+>>> only reporting the performance w.r.t. online training + performance over testing data.
+

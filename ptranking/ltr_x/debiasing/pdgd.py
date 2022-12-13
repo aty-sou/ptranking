@@ -7,6 +7,95 @@ from ptranking.base.point_ranker import PointNeuralRanker
 from ptranking.ltr_adhoc.eval.parameter import ModelParameter
 from ptranking.ltr_adhoc.util.sampling_utils import sample_ranking_PL_gumbel_softmax
 
+def get_PL_ranking_probability(batch_serp_scores):
+    m, _ = torch.max(batch_serp_scores, dim=1, keepdim=True)
+    y = batch_serp_scores - m
+    y = torch.exp(y)
+    y_backward_cumsum = torch.flip(torch.cumsum(torch.flip(y, dims=[1]), dim=1), dims=[1])
+    batch_logcumsumexps = torch.log(y_backward_cumsum) + m  # corresponding to the '-m' operation
+    batch_pl_probs = torch.exp(torch.sum((batch_serp_scores - batch_logcumsumexps), dim=1))
+    return batch_pl_probs
+
+def compute_pdgd_loss(batch_serp_clicks, batch_serp_scores):
+    batch_size, serp_size = batch_serp_clicks.size()
+    # note: some pairs including documents which we are not sure about their observation status
+    batch_preference_cmps = torch.unsqueeze(batch_serp_clicks, dim=2) - torch.unsqueeze(batch_serp_clicks, dim=1)
+    # print('batch_preference_cmps', batch_preference_cmps.size())
+    # print('batch_preference_cmps', batch_preference_cmps)
+
+    batch_serp_obs = torch.ones_like(batch_serp_clicks)
+    batch_backward_cumsums = torch.flip(torch.cumsum(torch.flip(batch_serp_clicks, dims=[1]), dim=1), dims=[1])
+    # a value > 0 denotes an observation
+    batch_serp_obs[:, 1:serp_size] = batch_backward_cumsums[:, 0:serp_size - 1]
+    #print('batch_serp_obs', batch_serp_obs)
+
+    # a value > 0 denotes a preference between a pair of documents both of which are observed based on our assumption
+    batch_3d_obs_mask = torch.unsqueeze(batch_serp_obs, dim=2) * torch.unsqueeze(batch_serp_obs, dim=1)
+    # print('batch_3d_obs_mask', batch_3d_obs_mask)
+
+    # a True value indicates an inferred >_c pairs
+    batch_3d_inferred_preferences = (batch_preference_cmps > 0) & (batch_3d_obs_mask > 0)
+    #print('batch_3d_inferred_preferences', batch_3d_inferred_preferences)
+
+    list_per_query_pairs = []
+    for i in range(batch_size):  # per-query computation
+        # skip if there is no click for a serp since there would be no inferred preference pairs
+        if 0>= torch.sum(batch_serp_clicks[i, :]):
+            continue
+
+        original_serp_ranking = batch_serp_scores[i, :]
+        serp_pl_prob = get_PL_ranking_probability(original_serp_ranking.view(1, -1))
+
+        inferred_2d_preferences = batch_3d_inferred_preferences[i, :, :]
+
+        # note: gradient is required
+        serp_ranking_as_col_vec = torch.unsqueeze(original_serp_ranking, dim=1)
+        pairwise_denominators = serp_ranking_as_col_vec + torch.unsqueeze(original_serp_ranking, dim=0)
+        pairwise_beat_probs = serp_ranking_as_col_vec / pairwise_denominators
+        inferred_preference_probs = pairwise_beat_probs[inferred_2d_preferences]
+        #print('inferred_preference_probs', inferred_preference_probs.size())
+        #print('inferred_preference_probs', inferred_preference_probs)
+
+        with torch.no_grad(): # gradient is not required during the coefficient computation
+            preference_inds = torch.nonzero(inferred_2d_preferences, as_tuple=False)
+            #print('preference_inds', preference_inds)
+            preference_ascend_inds, _ = torch.sort(preference_inds, descending=False)
+            #print('preference_ascend_inds', preference_ascend_inds)
+            num_pairs = preference_ascend_inds.size(0)
+
+            ascend_pair_heads = torch.index_select(original_serp_ranking, dim=0, index=preference_ascend_inds[:, 0])
+            # print('ascend_pair_heads', ascend_pair_heads)
+            ascend_pair_tails = torch.index_select(original_serp_ranking, dim=0, index=preference_ascend_inds[:, 1])
+            # print('ascend_pair_tails', ascend_pair_tails)
+            source_pair_scores = torch.stack([ascend_pair_heads, ascend_pair_tails], dim=1)
+            #print('source_pair_scores', source_pair_scores)
+
+            # the number of swapped rankings is equal to the number of inferred preference pairs
+            expanded_orig_serp_rankings = torch.clone(original_serp_ranking).detach().expand(num_pairs, -1)
+            #print('expanded_orig_serp_rankings', expanded_orig_serp_rankings)
+            swapped_preference_ascend_inds = torch.flip(preference_ascend_inds, dims=[1])
+            #print('swapped_preference_ascend_inds', swapped_preference_ascend_inds)
+            swapped_serp_rankings = expanded_orig_serp_rankings.scatter(dim=1, index=swapped_preference_ascend_inds,
+                                                                        src=source_pair_scores)
+            #print('swapped_serp_rankings', swapped_serp_rankings)
+            swapped_serp_pl_porbs = get_PL_ranking_probability(swapped_serp_rankings)
+            pairwise_rhos = swapped_serp_pl_porbs / (serp_pl_prob + swapped_serp_pl_porbs)
+            #print('pairwise_rhos', pairwise_rhos)
+
+        weighted_inferred_preference_probs = pairwise_rhos * inferred_preference_probs
+        #print('weighted_inferred_preference_probs', weighted_inferred_preference_probs)
+        list_per_query_pairs.append(weighted_inferred_preference_probs)
+        #print('==', list_per_query_pairs)
+
+    has_train_signal = False
+    if len(list_per_query_pairs) > 0:
+        has_train_signal = True
+        # print('---list_per_query_pairs', list_per_query_pairs)
+        per_query_pdgd_loss = -torch.sum(torch.cat(list_per_query_pairs, dim=0))
+        return has_train_signal, per_query_pdgd_loss
+    else:
+        return has_train_signal, None
+
 class PDGD(PointNeuralRanker):
     '''
     Oosterhuis, Harrie, and Maarten de Rijke. "Differentiable unbiased online learning to rank."
@@ -54,95 +143,14 @@ class PDGD(PointNeuralRanker):
             batch_train_desc_preds = torch.gather(batch_train_preds, dim=1, index=batch_system_desc_pred_inds)
             batch_serp_train_rele_scores = batch_train_desc_preds[:, 0:serp_size]
 
-            self.run_pdgd(batch_serp_clicks=batch_serp_clicks, batch_serp_scores=batch_serp_train_rele_scores)
-
-
-    def get_PL_ranking_probability(self, batch_serp_scores):
-        m, _ = torch.max(batch_serp_scores, dim=1, keepdim=True)
-        y = batch_serp_scores - m
-        y = torch.exp(y)
-        y_backward_cumsum = torch.flip(torch.cumsum(torch.flip(y, dims=[1]), dim=1), dims=[1])
-        batch_logcumsumexps = torch.log(y_backward_cumsum) + m  # corresponding to the '-m' operation
-        batch_pl_probs = torch.exp(torch.sum((batch_serp_scores - batch_logcumsumexps), dim=1))
-        return batch_pl_probs
-
-    def run_pdgd(self, batch_serp_clicks, batch_serp_scores):
-        batch_size, serp_size = batch_serp_clicks.size()
-        # note: some pairs including documents which we are not sure about their observation status
-        batch_preference_cmps = torch.unsqueeze(batch_serp_clicks, dim=2) - torch.unsqueeze(batch_serp_clicks, dim=1)
-        # print('batch_preference_cmps', batch_preference_cmps.size())
-        # print('batch_preference_cmps', batch_preference_cmps)
-
-        batch_serp_obs = torch.ones_like(batch_serp_clicks)
-        batch_backward_cumsums = torch.flip(torch.cumsum(torch.flip(batch_serp_clicks, dims=[1]), dim=1), dims=[1])
-        # a value > 0 denotes an observation
-        batch_serp_obs[:, 1:serp_size] = batch_backward_cumsums[:, 0:serp_size - 1]
-        #print('batch_serp_obs', batch_serp_obs)
-
-        # a value > 0 denotes a preference between a pair of documents both of which are observed based on our assumption
-        batch_3d_obs_mask = torch.unsqueeze(batch_serp_obs, dim=2) * torch.unsqueeze(batch_serp_obs, dim=1)
-        # print('batch_3d_obs_mask', batch_3d_obs_mask)
-
-        # a True value indicates an inferred >_c pairs
-        batch_3d_inferred_preferences = (batch_preference_cmps > 0) & (batch_3d_obs_mask > 0)
-        #print('batch_3d_inferred_preferences', batch_3d_inferred_preferences)
-
-        list_per_query_pairs = []
-        for i in range(batch_size):  # per-query computation
-            # skip if there is no click for a serp since there would be no inferred preference pairs
-            if 0>= torch.sum(batch_serp_clicks[i, :]):
+            has_train_signal, per_query_pdgd_loss = compute_pdgd_loss(batch_serp_clicks=batch_serp_clicks,
+                                                                      batch_serp_scores=batch_serp_train_rele_scores)
+            if has_train_signal:
+                self.optimizer.zero_grad()
+                per_query_pdgd_loss.backward()
+                self.optimizer.step()
+            else:
                 continue
-
-            original_serp_ranking = batch_serp_scores[i, :]
-            serp_pl_prob = self.get_PL_ranking_probability(original_serp_ranking.view(1, -1))
-
-            inferred_2d_preferences = batch_3d_inferred_preferences[i, :, :]
-
-            # note: gradient is required
-            serp_ranking_as_col_vec = torch.unsqueeze(original_serp_ranking, dim=1)
-            pairwise_denominators = serp_ranking_as_col_vec + torch.unsqueeze(original_serp_ranking, dim=0)
-            pairwise_beat_probs = serp_ranking_as_col_vec / pairwise_denominators
-            inferred_preference_probs = pairwise_beat_probs[inferred_2d_preferences]
-            #print('inferred_preference_probs', inferred_preference_probs.size())
-            #print('inferred_preference_probs', inferred_preference_probs)
-
-            with torch.no_grad(): # gradient is not required during the coefficient computation
-                preference_inds = torch.nonzero(inferred_2d_preferences, as_tuple=False)
-                #print('preference_inds', preference_inds)
-                preference_ascend_inds, _ = torch.sort(preference_inds, descending=False)
-                #print('preference_ascend_inds', preference_ascend_inds)
-                num_pairs = preference_ascend_inds.size(0)
-
-                ascend_pair_heads = torch.index_select(original_serp_ranking, dim=0, index=preference_ascend_inds[:, 0])
-                # print('ascend_pair_heads', ascend_pair_heads)
-                ascend_pair_tails = torch.index_select(original_serp_ranking, dim=0, index=preference_ascend_inds[:, 1])
-                # print('ascend_pair_tails', ascend_pair_tails)
-                source_pair_scores = torch.stack([ascend_pair_heads, ascend_pair_tails], dim=1)
-                #print('source_pair_scores', source_pair_scores)
-
-                # the number of swapped rankings is equal to the number of inferred preference pairs
-                expanded_orig_serp_rankings = torch.clone(original_serp_ranking).detach().expand(num_pairs, -1)
-                #print('expanded_orig_serp_rankings', expanded_orig_serp_rankings)
-                swapped_preference_ascend_inds = torch.flip(preference_ascend_inds, dims=[1])
-                #print('swapped_preference_ascend_inds', swapped_preference_ascend_inds)
-                swapped_serp_rankings = expanded_orig_serp_rankings.scatter(dim=1, index=swapped_preference_ascend_inds,
-                                                                            src=source_pair_scores)
-                #print('swapped_serp_rankings', swapped_serp_rankings)
-                swapped_serp_pl_porbs = self.get_PL_ranking_probability(swapped_serp_rankings)
-                pairwise_rhos = swapped_serp_pl_porbs / (serp_pl_prob + swapped_serp_pl_porbs)
-                #print('pairwise_rhos', pairwise_rhos)
-
-            weighted_inferred_preference_probs = pairwise_rhos * inferred_preference_probs
-            #print('weighted_inferred_preference_probs', weighted_inferred_preference_probs)
-            list_per_query_pairs.append(weighted_inferred_preference_probs)
-            #print('==', list_per_query_pairs)
-
-        if len(list_per_query_pairs) > 0:
-            #print('---list_per_query_pairs', list_per_query_pairs)
-            per_query_pdgd_loss = -torch.sum(torch.cat(list_per_query_pairs, dim=0))
-            self.optimizer.zero_grad()
-            per_query_pdgd_loss.backward()
-            self.optimizer.step()
 
 ###### Parameter of PDGD ######
 
