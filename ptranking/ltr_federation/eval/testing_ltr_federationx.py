@@ -41,12 +41,16 @@ if __name__ == '__main__':
         #data_id = 'MSLRWEB10K'
 
         ''' Location of the adopted data '''
-        dir_data = '/Users/iimac/Workbench/Corpus/L2R/LETOR4.0/MQ2008/'
+        dir_data = '/Users/kanazawaatsuya/dataset/MQ2008/'
+
+        #dir_data = '/Users/iimac/Workbench/Corpus/L2R/LETOR4.0/MQ2008/'
         #dir_data = '/Users/iimac/Workbench/Corpus/L2R/MSLR-WEB10K/'
         #dir_data = '/Users/solar/WorkBench/Datasets/L2R/LETOR4.0/MQ2008/'
 
         ''' Output directory '''
-        dir_output = '/Users/iimac/Workbench/CodeBench/Output/Out_Federation/'
+        dir_output = '/Users/kanazawaatsuya/lab/output/out_fed'
+
+        #dir_output = '/Users/iimac/Workbench/CodeBench/Output/Out_Federation/'
         #dir_output = '/Users/solar/WorkBench/CodeBench/PyCharmProject/Project_output/Out_Federation/'
 
         grid_search = False  # with grid_search, we can explore the effects of different hyper-parameters of a model

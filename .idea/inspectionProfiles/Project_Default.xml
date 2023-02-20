@@ -1,0 +1,31 @@
+<component name="InspectionProjectProfileManager">
+  <profile version="1.0">
+    <option name="myName" value="Project Default" />
+    <inspection_tool class="PyPackageRequirementsInspection" enabled="false" level="WARNING" enabled_by_default="false">
+      <option name="ignoredPackages">
+        <value>
+          <list size="8">
+            <item index="0" class="java.lang.String" itemvalue="mkl-fft" />
+            <item index="1" class="java.lang.String" itemvalue="dataclasses" />
+            <item index="2" class="java.lang.String" itemvalue="MarkupSafe" />
+            <item index="3" class="java.lang.String" itemvalue="mkl-random" />
+            <item index="4" class="java.lang.String" itemvalue="numpy" />
+            <item index="5" class="java.lang.String" itemvalue="intel-numpy" />
+            <item index="6" class="java.lang.String" itemvalue="Jinja2" />
+            <item index="7" class="java.lang.String" itemvalue="tbb4py" />
+          </list>
+        </value>
+      </option>
+    </inspection_tool>
+    <inspection_tool class="PyUnresolvedReferencesInspection" enabled="true" level="WARNING" enabled_by_default="true">
+      <option name="ignoredIdentifiers">
+        <list>
+          <option value="run_own.print" />
+          <option value="itertools" />
+          <option value="numpy" />
+          <option value="run_own.multiprocessing" />
+        </list>
+      </option>
+    </inspection_tool>
+  </profile>
+</component>
