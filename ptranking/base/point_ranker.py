@@ -22,6 +22,8 @@ class PointNeuralRanker(NeuralRanker):
         point_sf = self.ini_pointsf(**self.sf_para_dict[self.sf_para_dict['sf_id']])
         if self.gpu: point_sf = point_sf.to(self.device)
 
+        #print(point_sf)
+
         return point_sf
 
     def get_parameters(self):
@@ -32,10 +34,17 @@ class PointNeuralRanker(NeuralRanker):
         '''
         Initialization of a feed-forward neural network
         '''
+
+        #print("num_layers:{}".format(num_layers))
+        ### 中間層なし
+        num_layers = 0
+
         ff_dims = [num_features]
         for i in range(num_layers):
             ff_dims.append(h_dim)
         ff_dims.append(out_dim)
+
+        print("ff_dims:{}".format(ff_dims))
 
         point_sf = get_stacked_FFNet(ff_dims=ff_dims, AF=AF, TL_AF=TL_AF, apply_tl_af=apply_tl_af, dropout=dropout,
                                      BN=BN, bn_type=bn_type, bn_affine=bn_affine, device=self.device)

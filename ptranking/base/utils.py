@@ -163,6 +163,7 @@ def decode_sf_str(file_name):
         num_layers, HD_AF, HN_AF, TL_AF = int(''.join(filter(str.isdigit, sf_arr[1])))+2, sf_arr[0], sf_arr[1][0:-1], sf_arr[2]
 
     #print('--', num_layers, HD_AF, HN_AF, TL_AF)
+
     return num_layers, HD_AF, HN_AF, TL_AF
 
 ########

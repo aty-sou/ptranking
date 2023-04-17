@@ -136,13 +136,15 @@ class ScoringFunctionParameter(ModelParameter):
             self.sf_para_dict['lr'] = lr
             pointsf_para_dict = dict(num_layers=num_layers, AF=af, TL_AF=tl_af, apply_tl_af=apply_tl_af,
                                      BN=BN, bn_type=bn_type, bn_affine=bn_affine)
+
             self.sf_para_dict['sf_id'] = self.sf_id
             self.sf_para_dict[self.sf_id] = pointsf_para_dict
         else:
             self.sf_para_dict['opt'] = 'Adam'  # Adam | RMS | Adagrad
             self.sf_para_dict['lr'] = 0.0001  # learning rate
 
-            pointsf_para_dict = dict(num_layers=5, AF='GE', TL_AF='S', apply_tl_af=True,
+            # num_layers を変更する
+            pointsf_para_dict = dict(num_layers=0, AF='GE', TL_AF='S', apply_tl_af=True,
                                      BN=True, bn_type='BN', bn_affine=True)
             self.sf_para_dict['sf_id'] = self.sf_id
             self.sf_para_dict[self.sf_id] = pointsf_para_dict
@@ -187,6 +189,7 @@ class ScoringFunctionParameter(ModelParameter):
             choice_bn_type = ['BN2']
             choice_bn_affine = [False]
             choice_layers = [3]     if self.debug else [5]  # 1, 2, 3, 4
+            #print("choice:{}".format(choice_layers))
             choice_af = ['R', 'CE'] if self.debug else ['R', 'CE', 'S']  # ['R', 'LR', 'RR', 'E', 'SE', 'CE', 'S']
             choice_tl_af = ['R', 'CE'] if self.debug else ['R', 'CE', 'S'] # ['R', 'LR', 'RR', 'E', 'SE', 'CE', 'S']
             choice_apply_tl_af = [True]  # True, False
@@ -307,7 +310,15 @@ class ScoringFunctionParameter(ModelParameter):
                 ff_dims = ff_para_dict['ff_dims']
                 sf_str = s2.join([sf_str, s1.join(['ff_dims', '.'.join([str(x) for x in ff_dims] + [AF])])])
         else:
+            # print("ff_para_dict['num_layers']:{}".format(ff_para_dict['num_layers']))
+
             num_layers = ff_para_dict['num_layers'] if point else len(ff_para_dict['ff_dims'])
+
+            print("---------")
+            print("num_layers:{}".format(num_layers))
+            print("---------")
+
+
             sf_str = AF + str(num_layers) + TL_AF
             if BN:
                 if bn_affine:
