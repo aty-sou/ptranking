@@ -38,14 +38,31 @@ class FederatedServer():
         self.train_data = train_data
         self.train_presort, self.test_presort = data_dict['train_presort'], data_dict['test_presort']
 
+        # (epsilon, sensitivity) pair used in experiments
+        # todo e_s_list を ループで実験
         e_s_list = torch.tensor([[1.2, 3], [2.3, 3], [4.5, 5], [10, 5]])
         epsilon = e_s_list[2][0]
         sensitivity = e_s_list[2][1]
+
+        # todo user model を ループで実験する
+        user_model = ["PERFECT", "NAVIGATIONAL", "Informational"]
+
+        for i in range(3):
+            if user_model[i] == "PERFECT":
+                click_relevance = {0: 0.0, 1: 0.5, 2: 1.0}
+            elif user_model[i] == "NAVIGATIONAL":
+                click_relevance = {0: 0.05, 1: 0.5, 2: 0.95}
+            elif user_model[i] == "Informational":
+                click_relevance = {0: 0.4, 1: 0.7, 2: 0.9}
 
         seed = 1
         # seed = self.federation_para_dict["seed"]
         # todo
         # np.random.seed(seed)
+
+
+
+
 
         self.federated_client_pool = \
             [FederatedClient(dataset=self.train_data, presort=self.train_presort,
