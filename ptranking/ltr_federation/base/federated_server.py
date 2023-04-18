@@ -29,12 +29,18 @@ class FederatedServer():
         self.num_clients, self.interactions_per_feedback, self.per_interaction_update =\
             federation_para_dict["num_clients"], federation_para_dict["interactions_per_feedback"], federation_para_dict["per_interaction_update"]
 
+        print("self.num_clients:{}".format(self.num_clients))
+
     def init(self, train_data=None, test_data=None, data_dict=None):
         """ Conduct necessary initialization for federated learning """
         self.global_ranker.init()
         self.test_data = test_data
         self.train_data = train_data
         self.train_presort, self.test_presort = data_dict['train_presort'], data_dict['test_presort']
+
+        e_s_list = torch.tensor([[1.2, 3], [2.3, 3], [4.5, 5], [10, 5]])
+        epsilon = e_s_list[2][0]
+        sensitivity = e_s_list[2][1]
 
         seed = 1
         # seed = self.federation_para_dict["seed"]
@@ -44,8 +50,8 @@ class FederatedServer():
         self.federated_client_pool = \
             [FederatedClient(dataset=self.train_data, presort=self.train_presort,
                              global_ranker=copy.deepcopy(self.global_ranker), generation_serial=self.generation_serial,
-                             seed=seed * self.num_clients + client_id, sensitivity=None, epsilon=None, enable_noise=None,
-                             n_clients=None)
+                             seed=seed * self.num_clients + client_id, sensitivity=sensitivity, epsilon=epsilon, enable_noise=None,
+                             n_clients=self.num_clients)
              for client_id in range(self.num_clients)]
 
     def federated_train(self, epoch_k=None):
@@ -61,6 +67,8 @@ class FederatedServer():
                 list_client_feedbacks.append(dict_batch_gradients)
             # online evaluation
             sum_client_ndcg_at_k += torch.sum(client_ndcg_at_k)
+
+        print("trend_client:{}".format(sum_client_ndcg_at_k/self.num_clients))
 
         # online-line metrics
         trend_avg_client_ndcg.append(sum_client_ndcg_at_k/self.num_clients)

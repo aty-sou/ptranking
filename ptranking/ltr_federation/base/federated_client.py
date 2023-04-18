@@ -2,7 +2,7 @@
 import copy
 import numpy as np
 import torch
-
+from ptranking.ltr_federation.util.dp import gamma_noise
 
 class FederatedClient():
     """
@@ -12,12 +12,16 @@ class FederatedClient():
     (2) explicitly getting the the gradients of parameters (i.e., get_gradients())
     """
     def __init__(self, dataset=None, presort=None, global_ranker=None, generation_serial=None,
-                 seed=None, sensitivity=None, epsilon=None, enable_noise=None, n_clients=None):
+                 seed=None, sensitivity=None, epsilon=None, enable_noise=True, n_clients=None):
         self.dataset = dataset
         self.presort = presort
         self.federated_ranker = global_ranker
         self.generation_serial = 1 if generation_serial is None else generation_serial # indicating the n-th generation given the initial global ranker
         self.random_state = np.random.RandomState(seed)
+        self.sensitivity = sensitivity
+        self.epsilon = epsilon
+        self.enable_noise = True  # set True if you want to add DP noise, otherwise set False
+        self.n_clients = n_clients
 
     def aggregate_gradients(self, dict_batch_gradients, dict_gradients):
         for name, gradient in dict_gradients.items():
@@ -62,6 +66,17 @@ class FederatedClient():
 
         #if add_noise:
         #    pass
+
+        # print("enable noise:{}".format(self.enable_noise))
+
+        if self.enable_noise:
+            # gammma noiseを追加している
+
+            noise = gamma_noise(dict_weights["ff_2.weight"].size()[1], self.sensitivity, self.epsilon, self.n_clients)
+            # noise = gamma_noise(np.shape(dict_weights), self.sensitivity, self.epsilon, self.n_clients)
+            # print(noise)
+
+            dict_weights["ff_2.weight"] += noise
 
         #return ClientMessage
         avg_ndcg_at_k = sum_ndcg_at_k / interactions_per_feedback
