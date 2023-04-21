@@ -41,7 +41,7 @@ if __name__ == '__main__':
         #data_id = 'MSLRWEB10K'
 
         ''' Location of the adopted data '''
-        dir_data = '/Users/kanazawaatsuya/dataset/MQ2008/'
+        dir_data = '/Users/kanazawaatsuya/dataset/MQ2007/'
 
         #dir_data = '/Users/iimac/Workbench/Corpus/L2R/LETOR4.0/MQ2008/'
         #dir_data = '/Users/iimac/Workbench/Corpus/L2R/MSLR-WEB10K/'
