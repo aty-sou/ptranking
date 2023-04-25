@@ -82,6 +82,7 @@ class Federated_PDGDParameter(ModelParameter):
         num_session, num_burn_in_epoch = pdgd_para_dict['num_session'], pdgd_para_dict['num_burn_in_epoch']
 
         pdgd_para_str = s1.join(['Session', str(num_session), 'BurnIn', str(num_burn_in_epoch)])
+        #print("pdgd_para_str:{}".format(pdgd_para_str))
         return pdgd_para_str
 
     def grid_search(self):

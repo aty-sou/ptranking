@@ -124,6 +124,10 @@ class FederationLTREvaluator(LTREvaluator):
         :param model_para_dict:
         :return:
         """
+
+        # 現在のfold
+        #print("fold_k:{}".format(fold_k))
+
         file_train, file_vali, file_test = self.determine_files(data_dict, fold_k=fold_k)
 
         input_eval_dict = eval_dict if eval_dict['mask_label'] else None # required when enabling masking data
@@ -175,6 +179,8 @@ class FederationLTREvaluator(LTREvaluator):
 
         #todo add tape objects for federated LTR
 
+        print("fold_num: {}".format(fold_num))
+
         for fold_k in range(1, fold_num + 1):  # evaluation over k-fold data
             if model_id in LTR_Federation_MODEL:
                 train_data, test_data, _ = self.load_data_federation(data_dict=data_dict, eval_dict=eval_dict, fold_k=fold_k)
@@ -222,6 +228,8 @@ class FederationLTREvaluator(LTREvaluator):
         """
         Perform diversified ranking based on grid search of optimal parameter setting
         """
+        #print("grid_run")
+
         if dir_json is not None:
             x_data_eval_sf_json = dir_json + 'X_Data_Eval_ScoringFunction.json'
             para_json = dir_json + model_id + "Parameter.json"
@@ -269,6 +277,8 @@ class FederationLTREvaluator(LTREvaluator):
         :return:
         """
 
+        print("point_run")
+
         self.set_eval_setting(debug=debug, dir_output=dir_output)
         self.set_data_setting(debug=debug, data_id=data_id, dir_data=dir_data)
         data_dict = self.get_default_data_setting()
@@ -283,6 +293,9 @@ class FederationLTREvaluator(LTREvaluator):
         # todo federation_parameter's implementation
         self.set_federation_setting(debug=debug, federation_id=federation_id)
         federation_para_dict = self.get_default_federation_setting()
+
+        # dataに関するパラメータ
+        print(data_dict)
 
         self.kfold_cv_eval(data_dict=data_dict, eval_dict=eval_dict, sf_para_dict=sf_para_dict,
                            model_para_dict=model_para_dict, federation_para_dict=federation_para_dict)

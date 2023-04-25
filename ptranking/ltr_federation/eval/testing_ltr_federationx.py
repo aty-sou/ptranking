@@ -37,7 +37,7 @@ if __name__ == '__main__':
             evaluator.run(debug=debug, model_id=model_id, config_with_json=config_with_json, dir_json=dir_json)
 
     else:  # specify configuration manually
-        data_id = 'MQ2008_Super'
+        data_id = 'MQ2007_Super'
         #data_id = 'MSLRWEB10K'
 
         ''' Location of the adopted data '''

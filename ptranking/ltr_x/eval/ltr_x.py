@@ -141,6 +141,8 @@ class XLTREvaluator(LTREvaluator):
 
     def kfold_cv_eval(self, data_dict=None, eval_dict=None, sf_para_dict=None, model_para_dict=None):
 
+        print("**data_dict**:{}".format(data_dict))
+
         self.display_information(data_dict, model_para_dict)
         self.check_consistency(data_dict, eval_dict, sf_para_dict)
         self.setup_eval(data_dict, eval_dict, sf_para_dict, model_para_dict)
