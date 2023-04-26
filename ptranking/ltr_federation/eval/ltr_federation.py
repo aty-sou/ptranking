@@ -34,6 +34,9 @@ class FederationLTREvaluator(LTREvaluator):
         :param model_para_dict:
         :return:
         """
+
+        # print("data_dict:{}これを探しています".format(data_dict))
+
         sf_para_dict[sf_para_dict['sf_id']].update(dict(num_features=data_dict['num_features']))
 
         self.dir_run  = self.setup_output(data_dict, eval_dict)
@@ -49,6 +52,7 @@ class FederationLTREvaluator(LTREvaluator):
         #assert data_dict['train_rough_batch_size'] > 1
 
     def load_federated_server(self, sf_para_dict, model_para_dict, federation_para_dict, click_model=None):
+        # todo: click_modelをここで追加する
         federated_server = FederatedServer(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
                                            federation_para_dict=federation_para_dict, click_model=click_model)
         return federated_server

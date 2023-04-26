@@ -599,7 +599,10 @@ class DataSetting(Parameter):
 
         data_meta = get_data_meta(data_id=self.data_id) # add meta-information
 
-        if self.debug: data_meta['fold_num'] = 2
+        if self.debug:
+            # number of folds
+            data_meta['fold_num'] = 5
+            #print("!!!")
         self.data_dict.update(data_meta)
 
         return self.data_dict
