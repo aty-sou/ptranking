@@ -88,7 +88,8 @@ class FederatedServer():
         print("trend_client:{}".format(sum_client_ndcg_at_k/self.num_clients))
 
         # online-line metrics
-        trend_avg_client_ndcg.append(sum_client_ndcg_at_k/self.num_clients)
+        #trend_avg_client_ndcg.append(sum_client_ndcg_at_k/self.num_clients)
+
 
         self.federated_aggregation(list_client_feedbacks)
 

@@ -78,6 +78,7 @@ class FederationSummaryTape(object):
         self.test_presort = test_presort
 
     def epoch_summary(self, ranker, test_data):
+        #print("epoch_summary")
         ''' Summary in terms of nDCG '''
         fold_k_epoch_k_test_ndcg_ks = ranker.ndcg_at_ks(test_data=test_data, ks=self.cutoffs, device='cpu',
                                                         label_type=self.label_type, presort=self.test_presort)
@@ -86,6 +87,7 @@ class FederationSummaryTape(object):
         self.list_fold_k_test_track.append(np_fold_k_epoch_k_test_ndcg_ks)
 
     def fold_summary(self, fold_k, dir_run, train_data_length):
+        #print("fold_summary")
         sy_prefix = '_'.join(['Fold', str(fold_k)])
 
         fold_k_test_eval = np.vstack(self.list_fold_k_test_track)

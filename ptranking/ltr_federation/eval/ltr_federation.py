@@ -183,7 +183,7 @@ class FederationLTREvaluator(LTREvaluator):
 
         #todo add tape objects for federated LTR
 
-        print("fold_num: {}".format(fold_num))
+        #print("fold_num: {}".format(fold_num))
 
         for fold_k in range(1, fold_num + 1):  # evaluation over k-fold data
             if model_id in LTR_Federation_MODEL:
@@ -281,7 +281,7 @@ class FederationLTREvaluator(LTREvaluator):
         :return:
         """
 
-        print("point_run")
+        #print("point_run")
 
         self.set_eval_setting(debug=debug, dir_output=dir_output)
         self.set_data_setting(debug=debug, data_id=data_id, dir_data=dir_data)
@@ -299,7 +299,7 @@ class FederationLTREvaluator(LTREvaluator):
         federation_para_dict = self.get_default_federation_setting()
 
         # dataに関するパラメータ
-        print(data_dict)
+        #print(data_dict)
 
         self.kfold_cv_eval(data_dict=data_dict, eval_dict=eval_dict, sf_para_dict=sf_para_dict,
                            model_para_dict=model_para_dict, federation_para_dict=federation_para_dict)

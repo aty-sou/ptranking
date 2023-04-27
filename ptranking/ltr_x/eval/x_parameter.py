@@ -187,7 +187,7 @@ class XCVTape(object):
     Using multiple metrics to perform (1) fold-wise evaluation; (2) k-fold averaging
     """
 
-    print("check")
+    print("XCVTape")
 
     def __init__(self, model_id, fold_num, cutoffs, do_validation):
         self.cutoffs = cutoffs

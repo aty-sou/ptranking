@@ -2,7 +2,6 @@
 from ptranking.ltr_x.base.x_list_ranker import XListNeuralRanker
 from ptranking.ltr_x.base.x_point_ranker import XPointNeuralRanker
 
-
 class XNeuralRanker(XPointNeuralRanker, XListNeuralRanker):
     '''
     A combination of PointNeuralRanker & PENeuralRanker
