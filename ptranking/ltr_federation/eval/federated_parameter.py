@@ -28,7 +28,7 @@ class FederationParameter(ModelParameter):
         Default parameter setting for federated LTR
         """
         self.fed_para_dict = dict(federation_id=self.federation_id, num_clients=5,
-                                  interactions_per_feedback=4, interaction_budget=2000, per_interaction_update=False,
+                                  interactions_per_feedback=4, interaction_budget=200, per_interaction_update=False,
                                   epsilon=None, sensitivity=None,
                                   enable_noise=False)
         return self.fed_para_dict

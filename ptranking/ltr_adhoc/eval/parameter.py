@@ -601,7 +601,7 @@ class DataSetting(Parameter):
 
         if self.debug:
             # number of folds
-            data_meta['fold_num'] = 1
+            data_meta['fold_num'] = 5
             #print("!!!")
         self.data_dict.update(data_meta)
 

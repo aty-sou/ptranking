@@ -38,10 +38,11 @@ class Federated_PDGD(PointFederatedRanker):
 
         serp_size = self.click_model.serp_size
         batch_serp_std_labels = batch_system_rankings[:, 0:serp_size]
-        # simulating users' serf-behaviors based on a click model
-        batch_serp_clicks = self.click_model.surf_serp(batch_serp_std_labels, bool=False)
-        # todo : 考えること...user modelを追加した場合値がおかしくなる
-        #batch_serp_clicks = self.click_model.unbiased_surf_serp(batch_serp_std_labels, user_model="PERFECT")
+        ## simulating users' serf-behaviors based on a click model
+        #batch_serp_clicks = self.click_model.surf_serp(batch_serp_std_labels, bool=False)
+
+        # user modelを加味する場合
+        batch_serp_clicks = self.click_model.unbiased_surf_serp(batch_serp_std_labels, user_model="PERFECT")
 
         self.train_mode()
         batch_train_preds = self.predict(batch_q_doc_vectors)
