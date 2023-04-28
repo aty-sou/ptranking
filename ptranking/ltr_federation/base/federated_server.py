@@ -29,7 +29,7 @@ class FederatedServer():
         self.num_clients, self.interactions_per_feedback, self.per_interaction_update =\
             federation_para_dict["num_clients"], federation_para_dict["interactions_per_feedback"], federation_para_dict["per_interaction_update"]
 
-        print("self.num_clients:{}".format(self.num_clients))
+        #print("self.num_clients:{}".format(self.num_clients))
 
     def init(self, train_data=None, test_data=None, data_dict=None):
         """ Conduct necessary initialization for federated learning """
@@ -61,9 +61,6 @@ class FederatedServer():
         # np.random.seed(seed)
 
 
-
-
-
         self.federated_client_pool = \
             [FederatedClient(dataset=self.train_data, presort=self.train_presort,
                              global_ranker=copy.deepcopy(self.global_ranker), generation_serial=self.generation_serial,
@@ -85,7 +82,7 @@ class FederatedServer():
             # online evaluation
             sum_client_ndcg_at_k += torch.sum(client_ndcg_at_k)
 
-        print("trend_client:{}".format(sum_client_ndcg_at_k/self.num_clients))
+        print("trend_avg_ndcg:{}".format(sum_client_ndcg_at_k/self.num_clients))
 
         # online-line metrics
         #trend_avg_client_ndcg.append(sum_client_ndcg_at_k/self.num_clients)

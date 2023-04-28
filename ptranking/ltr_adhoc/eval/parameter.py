@@ -601,7 +601,7 @@ class DataSetting(Parameter):
 
         if self.debug:
             # number of folds
-            data_meta['fold_num'] = 5
+            data_meta['fold_num'] = 1
             #print("!!!")
         self.data_dict.update(data_meta)
 
@@ -724,7 +724,7 @@ class CVTape(object):
             self.list_per_q_ndcg = []
 
     def fold_evaluation(self, ranker, test_data, max_label, fold_k, model_id):
-        print("here is {}th evaluation".format(fold_k))
+        print("here is fold-{} evaluation".format(fold_k))
         avg_ndcg_at_ks, avg_nerr_at_ks, avg_ap_at_ks, avg_p_at_ks = \
             ranker.adhoc_performance_at_ks(test_data=test_data, ks=self.cutoffs, device='cpu', max_label=max_label)
         fold_ndcg_ks = avg_ndcg_at_ks.data.numpy()
@@ -732,21 +732,23 @@ class CVTape(object):
         fold_ap_ks = avg_ap_at_ks.data.numpy()
         fold_p_ks = avg_p_at_ks.data.numpy()
 
+        #print("self.ndcg_cv_avg_scores:{}".format(self.ndcg_cv_avg_scores))
+        #print("fold_ndcg_ks:{}".format(fold_ndcg_ks))
+
         self.ndcg_cv_avg_scores = np.add(self.ndcg_cv_avg_scores, fold_ndcg_ks)
         self.nerr_cv_avg_scores = np.add(self.nerr_cv_avg_scores, fold_nerr_ks)
         self.ap_cv_avg_scores = np.add(self.ap_cv_avg_scores, fold_ap_ks)
         self.p_cv_avg_scores = np.add(self.p_cv_avg_scores, fold_p_ks)
-
 
         list_metric_strs = []
         list_metric_strs.append(metric_results_to_string(list_scores=fold_ndcg_ks, list_cutoffs=self.cutoffs,
                                                          metric='nDCG'))
         list_metric_strs.append(metric_results_to_string(list_scores=fold_nerr_ks, list_cutoffs=self.cutoffs,
                                                          metric='nERR'))
-        list_metric_strs.append(metric_results_to_string(list_scores=fold_ap_ks, list_cutoffs=self.cutoffs,
-                                                         metric='AP'))
-        list_metric_strs.append(metric_results_to_string(list_scores=fold_p_ks, list_cutoffs=self.cutoffs,
-                                                         metric='P'))
+        #list_metric_strs.append(metric_results_to_string(list_scores=fold_ap_ks, list_cutoffs=self.cutoffs,
+        #                                                 metric='AP'))
+        #list_metric_strs.append(metric_results_to_string(list_scores=fold_p_ks, list_cutoffs=self.cutoffs,
+        #                                                 metric='P'))
         metric_string = '\n\t'.join(list_metric_strs)
         print("\n{} on Fold - {}\n\t{}".format(model_id, str(fold_k), metric_string))
 
@@ -809,10 +811,10 @@ class CVTape(object):
                                                          metric='nDCG'))
         list_metric_strs.append(metric_results_to_string(list_scores=nerr_cv_avg_scores, list_cutoffs=self.cutoffs,
                                                          metric='nERR'))
-        list_metric_strs.append(metric_results_to_string(list_scores=ap_cv_avg_scores, list_cutoffs=self.cutoffs,
-                                                         metric='AP'))
-        list_metric_strs.append(metric_results_to_string(list_scores=p_cv_avg_scores, list_cutoffs=self.cutoffs,
-                                                         metric='P'))
+        #list_metric_strs.append(metric_results_to_string(list_scores=ap_cv_avg_scores, list_cutoffs=self.cutoffs,
+        #                                                 metric='AP'))
+        #list_metric_strs.append(metric_results_to_string(list_scores=p_cv_avg_scores, list_cutoffs=self.cutoffs,
+        #                                                 metric='P'))
         metric_string = '\n'.join(list_metric_strs)
         print("\n{} {}\n{}".format(self.model_id, eval_prefix, metric_string))
         print('Elapsed time:\t', elapsed_time_str + "\n\n")

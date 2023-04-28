@@ -161,7 +161,7 @@ class FederationLTREvaluator(LTREvaluator):
         fold_num, label_type, max_label = data_dict['fold_num'], data_dict['label_type'], data_dict['max_rele_level']
 
         if model_id in LTR_Federation_MODEL: # federated LTR methods
-            click_model = PBM(max_label=4, gpu=self.gpu, device=self.device)
+            click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model="PERFECT")
             federated_server = self.load_federated_server(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
                                                           federation_para_dict=federation_para_dict,
                                                           click_model=click_model)
@@ -174,6 +174,7 @@ class FederationLTREvaluator(LTREvaluator):
 
         interaction_budget, num_clients, interactions_per_feedback =\
             federation_para_dict["interaction_budget"], federation_para_dict["num_clients"], federation_para_dict["interactions_per_feedback"]
+        # fed_epochs ... Number of server side updates
         fed_epochs = interaction_budget // num_clients // interactions_per_feedback
 
         if model_id in LTR_Federation_MODEL:
@@ -186,18 +187,23 @@ class FederationLTREvaluator(LTREvaluator):
         #print("fold_num: {}".format(fold_num))
 
         for fold_k in range(1, fold_num + 1):  # evaluation over k-fold data
+            print("Fold-{} の作業".format(fold_k))
             if model_id in LTR_Federation_MODEL:
                 train_data, test_data, _ = self.load_data_federation(data_dict=data_dict, eval_dict=eval_dict, fold_k=fold_k)
+                #print("length of train data: {}".format(len(train_data)))
+                #print("length of test data: {}".format(type(test_data)))
             else:
                 raise NotImplementedError
 
             if do_summary:
+                #print("do summary:{}".format(do_summary))
                 summary_tape = FederationSummaryTape(cutoffs=cutoffs, label_type=label_type,
                                                      test_presort=data_dict['test_presort'], gpu=self.gpu)
 
             # conduct necessary initialization for federated learning, e.g., the initial global ranker
             federated_server.init(train_data, test_data, data_dict)  # initialize or reset
 
+            print("fed_epochs: {}".format(fed_epochs))
             for epoch_k in range(1, fed_epochs + 1):
                 if model_id in LTR_Federation_MODEL:
                     federated_server.federated_train()
