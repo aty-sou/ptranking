@@ -19,6 +19,8 @@ from ptranking.ltr_federation.base.federated_server import FederatedServer
 from ptranking.ltr_federation.eval.federated_parameter import FederationSummaryTape
 from ptranking.ltr_federation.federated_debiasing.federated_pdgd import Federated_PDGDParameter
 
+from ptranking.ltr_federation.util.plot_fpdgd import draw_line
+
 LTR_Federation_MODEL = ['Federated_PDGD']
 
 class FederationLTREvaluator(LTREvaluator):
@@ -200,21 +202,43 @@ class FederationLTREvaluator(LTREvaluator):
                 summary_tape = FederationSummaryTape(cutoffs=cutoffs, label_type=label_type,
                                                      test_presort=data_dict['test_presort'], gpu=self.gpu)
 
-            # conduct necessary initialization for federated learning, e.g., the initial global ranker
-            federated_server.init(train_data, test_data, data_dict)  # initialize or reset
+            # epsilon & sensitivity のリスト
+            e_s_list = torch.tensor([[1.2, 3], [2.3, 3], [4.5, 5], [10, 5]])
 
-            print("fed_epochs: {}".format(fed_epochs))
-            for epoch_k in range(1, fed_epochs + 1):
-                if model_id in LTR_Federation_MODEL:
-                    federated_server.federated_train()
-                else:
-                    raise NotImplementedError
+            # esごとのndcgをまとめて管理するリスト
+            ndcg_es_list = []
 
-                # todo implement more complex SGD
-                #ranker.scheduler_step()  # adaptive learning rate with step_size=40, gamma=0.5
+            for epsilon, sensitivity in e_s_list:
+                # conduct necessary initialization for federated learning, e.g., the initial global ranker
+                federated_server.init(train_data, test_data, data_dict, epsilon, sensitivity)  # initialize or reset
 
-                if do_summary and (epoch_k % log_step == 0 or epoch_k == 1):  # stepwise check
-                    summary_tape.epoch_summary(ranker=federated_server.global_ranker, test_data=test_data)
+                # serverでのアップデート毎にndcgを記録するリスト
+                server_ndcg_list = torch.zeros(fed_epochs)
+
+                print("--total fed_epochs: {}".format(fed_epochs))
+                for epoch_k in range(fed_epochs):
+                    if model_id in LTR_Federation_MODEL:
+                        trend_avg_client_ndcg = federated_server.federated_train()
+                        server_ndcg_list[epoch_k] = trend_avg_client_ndcg
+                        print("fed_epoch_{}_server:{}".format(epoch_k, trend_avg_client_ndcg))
+
+                    else:
+                        raise NotImplementedError
+
+                    # todo implement more complex SGD
+                    #ranker.scheduler_step()  # adaptive learning rate with step_size=40, gamma=0.5
+
+                    if do_summary and (epoch_k % log_step == 0 or epoch_k == 1):  # stepwise check
+                        summary_tape.epoch_summary(ranker=federated_server.global_ranker, test_data=test_data)
+
+                ndcg_es_list.append(server_ndcg_list)
+
+            #print(ndcg_es_list)
+
+            # plot
+            draw_line(fed_epochs, ndcg_es_list, fold_k)
+
+            #print(server_ndcg_list)
 
             if do_summary:  # track
                 #todo how to average among k-folds

@@ -42,6 +42,7 @@ if __name__ == '__main__':
 
         ''' Location of the adopted data '''
         dir_data = '/Users/kanazawaatsuya/dataset/MQ2007/'
+        #dir_data = '/Users/iilab/Workbench/Data/MQ2007/'
 
         #dir_data = '/Users/iimac/Workbench/Corpus/L2R/LETOR4.0/MQ2008/'
         #dir_data = '/Users/iimac/Workbench/Corpus/L2R/MSLR-WEB10K/'
@@ -49,6 +50,7 @@ if __name__ == '__main__':
 
         ''' Output directory '''
         dir_output = '/Users/kanazawaatsuya/lab/output/out_fed'
+        #dir_output = '/Users/iilab/Workbench/Output/fed/'
 
         #dir_output = '/Users/iimac/Workbench/CodeBench/Output/Out_Federation/'
         #dir_output = '/Users/solar/WorkBench/CodeBench/PyCharmProject/Project_output/Out_Federation/'

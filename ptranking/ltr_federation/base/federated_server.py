@@ -31,7 +31,7 @@ class FederatedServer():
 
         #print("self.num_clients:{}".format(self.num_clients))
 
-    def init(self, train_data=None, test_data=None, data_dict=None):
+    def init(self, train_data=None, test_data=None, data_dict=None, epsilon=None, sensitivity=None):
         """ Conduct necessary initialization for federated learning """
         self.global_ranker.init()
         self.test_data = test_data
@@ -60,7 +60,6 @@ class FederatedServer():
         # todo
         # np.random.seed(seed)
 
-
         self.federated_client_pool = \
             [FederatedClient(dataset=self.train_data, presort=self.train_presort,
                              global_ranker=copy.deepcopy(self.global_ranker), generation_serial=self.generation_serial,
@@ -71,7 +70,6 @@ class FederatedServer():
     def federated_train(self, epoch_k=None):
         self.generation_serial = epoch_k
 
-        trend_avg_client_ndcg = []
         list_client_feedbacks = []
         sum_client_ndcg_at_k = torch.zeros(1)
         for client in self.federated_client_pool:
@@ -82,11 +80,11 @@ class FederatedServer():
             # online evaluation
             sum_client_ndcg_at_k += torch.sum(client_ndcg_at_k)
 
-        print("trend_avg_ndcg:{}".format(sum_client_ndcg_at_k/self.num_clients))
+        trend_avg_client_ndcg = sum_client_ndcg_at_k/self.num_clients
+        #print("trend_avg_ndcg:{}".format(sum_client_ndcg_at_k/self.num_clients))
 
         # online-line metrics
         #trend_avg_client_ndcg.append(sum_client_ndcg_at_k/self.num_clients)
-
 
         self.federated_aggregation(list_client_feedbacks)
 
@@ -95,6 +93,7 @@ class FederatedServer():
             client.fetch_newest_global_ranker(newest_global_ranker=self.global_ranker, generation_serial=self.generation_serial)
 
         #return TrainResult(ranker=self.global_ranker, ndcg_server=ndcg_server, mrr_server=mrr_server, ndcg_client=trend_avg_client_ndcg)
+        return trend_avg_client_ndcg
 
     def federated_aggregation(self, list_client_feedbacks):
         #todo the current method is too simple, namely averaging
