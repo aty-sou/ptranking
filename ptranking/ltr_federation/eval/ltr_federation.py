@@ -2,6 +2,7 @@
 import sys
 import datetime
 import numpy as np
+import copy
 
 import torch
 
@@ -162,13 +163,13 @@ class FederationLTREvaluator(LTREvaluator):
         model_id = model_para_dict['model_id']
         fold_num, label_type, max_label = data_dict['fold_num'], data_dict['label_type'], data_dict['max_rele_level']
 
-        if model_id in LTR_Federation_MODEL: # federated LTR methods
-            click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model="PERFECT")
-            federated_server = self.load_federated_server(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
-                                                          federation_para_dict=federation_para_dict,
-                                                          click_model=click_model)
-        else:
-            raise NotImplementedError
+        #if model_id in LTR_Federation_MODEL: # federated LTR methods
+        #    click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model="PERFECT")
+        #    federated_server = self.load_federated_server(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
+        #                                                  federation_para_dict=federation_para_dict,
+        #                                                  click_model=click_model)
+        #else:
+        #    raise NotImplementedError
 
         # for quick access of common evaluation settings
         vali_k, log_step, cutoffs = eval_dict['vali_k'], eval_dict['log_step'], eval_dict['cutoffs']
@@ -188,71 +189,108 @@ class FederationLTREvaluator(LTREvaluator):
 
         #print("fold_num: {}".format(fold_num))
 
-        for fold_k in range(1, fold_num + 1):  # evaluation over k-fold data
-            print("Fold-{} の作業".format(fold_k))
-            if model_id in LTR_Federation_MODEL:
-                train_data, test_data, _ = self.load_data_federation(data_dict=data_dict, eval_dict=eval_dict, fold_k=fold_k)
-                #print("length of train data: {}".format(len(train_data)))
-                #print("length of test data: {}".format(type(test_data)))
-            else:
-                raise NotImplementedError
+        # user modelの設定
+        if model_id in LTR_Federation_MODEL: # federated LTR methods
+            user_model_list=["PERFECT", "NAVIGATIONAL", "INFORMATIAL"]
+            for user_model in user_model_list:
+                click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model=user_model)
+                federated_server = self.load_federated_server(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
+                                                              federation_para_dict=federation_para_dict,
+                                                              click_model=click_model)
 
-            if do_summary:
-                #print("do summary:{}".format(do_summary))
-                summary_tape = FederationSummaryTape(cutoffs=cutoffs, label_type=label_type,
-                                                     test_presort=data_dict['test_presort'], gpu=self.gpu)
+                # foldごとのリストをまとめるリスト
+                es_list_size = 4
+                all_fold_list = torch.zeros(fold_num, es_list_size, fed_epochs)
+                '''
+                fold_num: foldの数
+                es_list_size: パラメータの数
+                fed_epochs: サーバーのupdate回数
+                '''
 
-            # epsilon & sensitivity のリスト
-            e_s_list = torch.tensor([[1.2, 3], [2.3, 3], [4.5, 5], [10, 5]])
-
-            # esごとのndcgをまとめて管理するリスト
-            ndcg_es_list = []
-
-            for epsilon, sensitivity in e_s_list:
-                # conduct necessary initialization for federated learning, e.g., the initial global ranker
-                federated_server.init(train_data, test_data, data_dict, epsilon, sensitivity)  # initialize or reset
-
-                # serverでのアップデート毎にndcgを記録するリスト
-                server_ndcg_list = torch.zeros(fed_epochs)
-
-                print("--total fed_epochs: {}".format(fed_epochs))
-                for epoch_k in range(fed_epochs):
+                for fold_k in range(1, fold_num + 1):  # evaluation over k-fold data
+                    print("Fold-{} の作業".format(fold_k))
                     if model_id in LTR_Federation_MODEL:
-                        trend_avg_client_ndcg = federated_server.federated_train()
-                        server_ndcg_list[epoch_k] = trend_avg_client_ndcg
-                        print("fed_epoch_{}_server:{}".format(epoch_k, trend_avg_client_ndcg))
-
+                        train_data, test_data, _ = self.load_data_federation(data_dict=data_dict, eval_dict=eval_dict, fold_k=fold_k)
+                        #print("length of train data: {}".format(len(train_data)))
+                        #print("length of test data: {}".format(type(test_data)))
                     else:
                         raise NotImplementedError
 
-                    # todo implement more complex SGD
-                    #ranker.scheduler_step()  # adaptive learning rate with step_size=40, gamma=0.5
+                    if do_summary:
+                        #print("do summary:{}".format(do_summary))
+                        summary_tape = FederationSummaryTape(cutoffs=cutoffs, label_type=label_type,
+                                                             test_presort=data_dict['test_presort'], gpu=self.gpu)
 
-                    if do_summary and (epoch_k % log_step == 0 or epoch_k == 1):  # stepwise check
-                        summary_tape.epoch_summary(ranker=federated_server.global_ranker, test_data=test_data)
+                    # epsilon & sensitivity のリスト
+                    e_s_list = torch.tensor([[1.2, 3], [2.3, 3], [4.5, 5], [10, 5]])
 
-                ndcg_es_list.append(server_ndcg_list)
+                    # esごとのndcgをまとめて管理するリスト
+                    ndcg_es_list = torch.zeros(4, fed_epochs)
 
-            #print(ndcg_es_list)
+                    # index も同時に取得する
+                    for es_index, p in enumerate(e_s_list):
+                        epsilon = p[0]
+                        sensitivity = p[1]
 
-            # plot
-            draw_line(fed_epochs, ndcg_es_list, fold_k)
+                        # conduct necessary initialization for federated learning, e.g., the initial global ranker
+                        federated_server.init(train_data, test_data, data_dict, epsilon, sensitivity)  # initialize or reset
 
-            #print(server_ndcg_list)
+                        # serverでのアップデート毎にndcgを記録するリスト
+                        server_ndcg_list = torch.zeros(fed_epochs)
 
-            if do_summary:  # track
-                #todo how to average among k-folds
-                summary_tape.fold_summary(fold_k=fold_k, dir_run=self.dir_run, train_data_length=train_data.__len__())
+                        print("--total fed_epochs: {}".format(fed_epochs))
+                        for epoch_k in range(fed_epochs):
+                            if model_id in LTR_Federation_MODEL:
+                                trend_avg_client_ndcg = federated_server.federated_train()
+                                # ndcgの値を格納する
+                                server_ndcg_list[epoch_k] = trend_avg_client_ndcg
+                                print("fed_epoch_{}_server:{}".format(epoch_k, trend_avg_client_ndcg))
 
-            # buffer the model after a fixed number of training-epoches if no validation is deployed
-            fold_optimal_checkpoint = '-'.join(['Fold', str(fold_k)])
-            federated_server.save(dir=self.dir_run + fold_optimal_checkpoint + '/', name='_'.join(['net_params_epoch', str(epoch_k)]) + '.pkl')
+                            else:
+                                raise NotImplementedError
 
-            if model_id in LTR_Federation_MODEL:
-                #todo only pointwise computation?
-                cv_tape.fold_evaluation(model_id=model_id, ranker=federated_server.global_ranker, test_data=test_data, max_label=max_label, fold_k=fold_k)
-            else:
-                raise NotImplementedError
+                            # todo implement more complex SGD
+                            #ranker.scheduler_step()  # adaptive learning rate with step_size=40, gamma=0.5
+
+                            if do_summary and (epoch_k % log_step == 0 or epoch_k == 1):  # stepwise check
+                                summary_tape.epoch_summary(ranker=federated_server.global_ranker, test_data=test_data)
+
+                        ndcg_es_list[es_index] = server_ndcg_list
+
+                    # 確認
+                    print("fold_{}でのupdateの様子:{}".format(fold_k, ndcg_es_list))
+
+                    # fold_k での結果を格納
+                    all_fold_list[fold_k-1] = ndcg_es_list
+
+                    if do_summary:  # track
+                        #todo how to average among k-folds
+                        summary_tape.fold_summary(fold_k=fold_k, dir_run=self.dir_run, train_data_length=train_data.__len__())
+
+                    # buffer the model after a fixed number of training-epoches if no validation is deployed
+                    fold_optimal_checkpoint = '-'.join(['Fold', str(fold_k)])
+                    federated_server.save(dir=self.dir_run + fold_optimal_checkpoint + '/', name='_'.join(['net_params_epoch', str(epoch_k)]) + '.pkl')
+
+                    if model_id in LTR_Federation_MODEL:
+                        #todo only pointwise computation?
+                        cv_tape.fold_evaluation(model_id=model_id, ranker=federated_server.global_ranker, test_data=test_data, max_label=max_label, fold_k=fold_k)
+                    else:
+                        raise NotImplementedError
+
+                print("User_Model:{}での平均".format(user_model))
+
+                # todo: deepcopyする
+                # 平均をとる
+                all_fold_mean = torch.mean(all_fold_list, dim=0)
+                print(all_fold_mean)
+
+                # todo: 可視化する
+                # user model毎に、foldの平均を plot
+                # draw_line(fed_epochs, ndcg_es_list, fold_k, user_model)
+
+        else:
+            raise NotImplementedError
+
 
         ndcg_cv_avg_scores = cv_tape.get_cv_performance()
         return ndcg_cv_avg_scores

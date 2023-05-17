@@ -38,8 +38,9 @@ class PBM(ClickModel):
 
         return batch_rele_probs
 
-    def get_rele_probs_um(self, batch_std_labels, user_model):
-        print("User model: **{}**".format(user_model))
+    def get_rele_probs_um(self, batch_std_labels):
+        user_model = self.user_model
+        #print("User model: **{}**".format(user_model))
         if user_model=="PERFECT":
             click_relevance = torch.tensor([0.0, 0.5, 1.0])
         elif user_model=="NAVIGATIONAL":
@@ -74,14 +75,14 @@ class PBM(ClickModel):
         
         return batch_simulated_clicks
 
-    def unbiased_surf_serp(self, batch_predicted_rankings, user_model):
+    def unbiased_surf_serp(self, batch_predicted_rankings):
         '''
         Surf the SERP (search result page) with inverse propensity scoring (IPS)
         @param batch_predicted_rankings:
         @param bool:
         @return: click information
         '''
-        batch_rele_probs = self.get_rele_probs_um(batch_predicted_rankings, user_model)
+        batch_rele_probs = self.get_rele_probs_um(batch_predicted_rankings)
         batch_click_probs = self.examination_probs * batch_rele_probs
 
         bool_batch_simulated_clicks = torch.rand(size=batch_predicted_rankings.size()) < batch_click_probs
