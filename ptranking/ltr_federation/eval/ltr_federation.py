@@ -189,8 +189,8 @@ class FederationLTREvaluator(LTREvaluator):
 
         #print("fold_num: {}".format(fold_num))
 
-        # user modelの設定
         if model_id in LTR_Federation_MODEL: # federated LTR methods
+            # user model
             user_model_list=["PERFECT", "NAVIGATIONAL", "INFORMATIAL"]
             for user_model in user_model_list:
                 click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model=user_model)
@@ -241,7 +241,7 @@ class FederationLTREvaluator(LTREvaluator):
                         print("--total fed_epochs: {}".format(fed_epochs))
                         for epoch_k in range(fed_epochs):
                             if model_id in LTR_Federation_MODEL:
-                                trend_avg_client_ndcg = federated_server.federated_train()
+                                trend_avg_client_ndcg = copy.deepcopy(federated_server.federated_train())
                                 # ndcgの値を格納する
                                 server_ndcg_list[epoch_k] = trend_avg_client_ndcg
                                 print("fed_epoch_{}_server:{}".format(epoch_k, trend_avg_client_ndcg))
@@ -286,7 +286,7 @@ class FederationLTREvaluator(LTREvaluator):
 
                 # todo: 可視化する
                 # user model毎に、foldの平均を plot
-                # draw_line(fed_epochs, ndcg_es_list, fold_k, user_model)
+                draw_line(fed_epochs, ndcg_es_list, user_model)
 
         else:
             raise NotImplementedError

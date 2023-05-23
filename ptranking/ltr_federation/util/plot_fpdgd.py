@@ -8,7 +8,7 @@ import os
 #os.makedirs(dirname, exist_ok=True)
 
 
-def draw_line(epoch, ndcg_list, fold_k, user_model):
+def draw_line(epoch, ndcg_list, user_model):
     """
     epoch: serverのepoch数
     ndcg: serverのndcgリスト
@@ -42,7 +42,7 @@ def draw_line(epoch, ndcg_list, fold_k, user_model):
 
     #print(ax)
     #print(ndcg_list)
-    filename = dirname + "UM:{}_fold:{}.png".format(user_model, fold_k)
+    filename = dirname + "UM:{}.png".format(user_model)
 
     ax.legend()  # 凡例表示
     fig.savefig(filename)  # 画像保存
