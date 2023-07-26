@@ -33,11 +33,9 @@ class PointNeuralRanker(NeuralRanker):
         Initialization of a feed-forward neural network
         '''
 
-        print("num_layers:{}".format(num_layers))
-
         # num_layer を一時的に変更する
-        # todo ここで変更するのは不自然?
-        num_layers = 0
+        # todo
+        # num_layers = 0
 
         ff_dims = [num_features]
         for i in range(num_layers):

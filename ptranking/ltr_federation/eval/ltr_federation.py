@@ -193,6 +193,7 @@ class FederationLTREvaluator(LTREvaluator):
             # user model
             user_model_list=["PERFECT", "NAVIGATIONAL", "INFORMATIAL"]
             for user_model in user_model_list:
+                print(user_model, "の作業")
                 click_model = PBM(max_label=4, gpu=self.gpu, device=self.device, user_model=user_model)
                 federated_server = self.load_federated_server(sf_para_dict=sf_para_dict, model_para_dict=model_para_dict,
                                                               federation_para_dict=federation_para_dict,
@@ -238,13 +239,14 @@ class FederationLTREvaluator(LTREvaluator):
                         # serverでのアップデート毎にndcgを記録するリスト
                         server_ndcg_list = torch.zeros(fed_epochs)
 
-                        print("--total fed_epochs: {}".format(fed_epochs))
+                        #print("--total fed_epochs: {}".format(fed_epochs))
                         for epoch_k in range(fed_epochs):
                             if model_id in LTR_Federation_MODEL:
+                                #print("---------------------------------")
                                 trend_avg_client_ndcg = copy.deepcopy(federated_server.federated_train())
                                 # ndcgの値を格納する
                                 server_ndcg_list[epoch_k] = trend_avg_client_ndcg
-                                print("fed_epoch_{}_server:{}".format(epoch_k, trend_avg_client_ndcg))
+                                #print("fold:{}, es_index:{}, um:{}, fed_update{}:{}".format(fold_k, es_index, user_model, epoch_k, trend_avg_client_ndcg))
 
                             else:
                                 raise NotImplementedError
@@ -258,7 +260,7 @@ class FederationLTREvaluator(LTREvaluator):
                         ndcg_es_list[es_index] = server_ndcg_list
 
                     # 確認
-                    print("fold_{}でのupdateの様子:{}".format(fold_k, ndcg_es_list))
+                    #print("fold_{}でのupdateの様子:{}".format(fold_k, ndcg_es_list))
 
                     # fold_k での結果を格納
                     all_fold_list[fold_k-1] = ndcg_es_list
@@ -277,12 +279,12 @@ class FederationLTREvaluator(LTREvaluator):
                     else:
                         raise NotImplementedError
 
-                print("User_Model:{}での平均".format(user_model))
+                #print("User_Model:{}での平均".format(user_model))
 
                 # todo: deepcopyする
                 # 平均をとる
                 all_fold_mean = torch.mean(all_fold_list, dim=0)
-                print(all_fold_mean)
+                #print(all_fold_mean)
 
                 # todo: 可視化する
                 # user model毎に、foldの平均を plot
